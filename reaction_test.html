@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reaction Test</title>
+  <style>
+    :root{--bg:#000;--fg:#fff}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:var(--fg);overflow:hidden}
+
+    .play-area{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+    .target{position:absolute;border-radius:50%;cursor:pointer;box-shadow:0 0 20px rgba(255,255,255,0.3);}
+
+    #control-btn{
+      position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+      background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:16px;
+    }
+
+    #timer{position:fixed;top:20px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:bold;}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .modal{background:#111;border-radius:12px;padding:20px;min-width:260px;text-align:center}
+
+    @media (max-width:600px){
+      #control-btn{padding:8px 16px;font-size:14px;bottom:15px;}
+      #timer{font-size:16px;top:10px;}
+      .modal{width:85%;padding:16px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="play-area" id="play-area"></div>
+  <div id="timer">01:00</div>
+  <button id="control-btn">Start Test</button>
+
+  <div id="result-modal" style="display:none">
+    <div class="modal-backdrop">
+      <div class="modal">
+        <h3>Test Complete</h3>
+        <p id="result-text"></p>
+        <button id="retry-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const TEST_DURATION_SEC = 60; // 1 minute
+      const APPEAR_MIN = 10;
+      const APPEAR_MAX = 15;
+      const APPEAR_DURATION_MS = 1000;
+      const SIZE_VH_MIN = 20;
+      const SIZE_VH_MAX = 30;
+
+      let timers = [];
+      let hits = [];
+      let started = false;
+      let total = 0;
+      let testEnd;
+      let countdownInterval;
+      let target;
+
+      const playArea = document.getElementById('play-area');
+      const controlBtn = document.getElementById('control-btn');
+      const timerEl = document.getElementById('timer');
+      const modal = document.getElementById('result-modal');
+      const resultText = document.getElementById('result-text');
+      const retryBtn = document.getElementById('retry-btn');
+
+      function rand(min,max){return Math.random()*(max-min)+min}
+      function randColor(){const h=Math.floor(Math.random()*360);return `hsl(${h} 80% 60%)`}
+
+      function clearAll(){timers.forEach(t=>clearTimeout(t));timers=[];if(target)target.remove();if(countdownInterval)clearInterval(countdownInterval);}
+
+      function startTest(){
+        if(started) return;
+        started = true;
+        clearAll();
+        hits = [];
+        total = Math.floor(rand(APPEAR_MIN,APPEAR_MAX));
+        controlBtn.textContent='Retest';
+
+        let timeLeft = TEST_DURATION_SEC;
+        timerEl.textContent='01:00';
+
+        const offsets = Array.from({length:total},()=>rand(0,TEST_DURATION_SEC-1));
+        offsets.sort((a,b)=>a-b);
+
+        offsets.forEach((offset,i)=>{
+          const id=setTimeout(()=>showTarget(i),offset*1000);
+          timers.push(id);
+        });
+
+        countdownInterval = setInterval(()=>{
+          timeLeft--;
+          const mm = String(Math.floor(timeLeft/60)).padStart(2,'0');
+          const ss = String(timeLeft%60).padStart(2,'0');
+          timerEl.textContent = `${mm}:${ss}`;
+          if(timeLeft <= 0){ clearInterval(countdownInterval); endTest(); }
+        },1000);
+
+        testEnd=setTimeout(endTest,TEST_DURATION_SEC*1000);
+      }
+
+      function showTarget(i){
+        if(target)target.remove();
+        const el=document.createElement('div');
+        el.className='target';
+        const size=window.innerHeight*rand(SIZE_VH_MIN,SIZE_VH_MAX)/100;
+        el.style.width=el.style.height=size+'px';
+        el.style.background=randColor();
+        const left=rand(0,window.innerWidth-size);
+        const top=rand(0,window.innerHeight-size);
+        el.style.left=left+'px';
+        el.style.top=top+'px';
+        el.style.position='fixed';
+        playArea.appendChild(el);
+        target=el;
+        const startTime=Date.now();
+        const hide=setTimeout(()=>{el.remove();},APPEAR_DURATION_MS);
+        el.addEventListener('click',()=>{
+          hits.push(Date.now()-startTime);
+          clearTimeout(hide);
+          el.remove();
+        });
+      }
+
+      function endTest(){
+        started=false;
+        clearAll();
+        if(target)target.remove();
+        if(hits.length===0){resultText.innerText='No hits recorded.';}
+        else {
+          const avg=hits.reduce((a,b)=>a+b,0)/hits.length;
+          resultText.innerText=`Average Reaction Time: ${(avg/1000).toFixed(3)} sec`;
+        }
+        modal.style.display='block';
+      }
+
+      controlBtn.onclick=()=>{
+        if(started){
+          clearAll();
+          started=false;
+          startTest();
+        } else {
+          startTest();
+        }
+      }
+
+      retryBtn.onclick=()=>{modal.style.display='none';}
+    })();
+  </script>
+</body>
+</html>
