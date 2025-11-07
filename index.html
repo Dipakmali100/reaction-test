@@ -38,7 +38,7 @@
       <div class="modal">
         <h3>Test Complete</h3>
         <p id="result-text"></p>
-        <button id="retry-btn">Close</button>
+        <button id="start-again-btn">Start Again</button>
       </div>
     </div>
   </div>
@@ -46,11 +46,11 @@
   <script>
     (function(){
       const TEST_DURATION_SEC = 60; // 1 minute
-      const APPEAR_MIN = 10;
-      const APPEAR_MAX = 15;
-      const APPEAR_DURATION_MS = 1000;
-      const SIZE_VH_MIN = 20;
-      const SIZE_VH_MAX = 30;
+      const APPEAR_MIN = 25;
+      const APPEAR_MAX = 30;
+      const APPEAR_DURATION_MS = 1000; // visible for 1 second
+      const SIZE_VH_MIN = 10;
+      const SIZE_VH_MAX = 15;
 
       let timers = [];
       let hits = [];
@@ -65,7 +65,7 @@
       const timerEl = document.getElementById('timer');
       const modal = document.getElementById('result-modal');
       const resultText = document.getElementById('result-text');
-      const retryBtn = document.getElementById('retry-btn');
+      const startAgainBtn = document.getElementById('start-again-btn');
 
       function rand(min,max){return Math.random()*(max-min)+min}
       function randColor(){const h=Math.floor(Math.random()*360);return `hsl(${h} 80% 60%)`}
@@ -73,12 +73,12 @@
       function clearAll(){timers.forEach(t=>clearTimeout(t));timers=[];if(target)target.remove();if(countdownInterval)clearInterval(countdownInterval);}
 
       function startTest(){
-        if(started) return;
-        started = true;
         clearAll();
         hits = [];
         total = Math.floor(rand(APPEAR_MIN,APPEAR_MAX));
+        started = true;
         controlBtn.textContent='Retest';
+        modal.style.display='none';
 
         let timeLeft = TEST_DURATION_SEC;
         timerEl.textContent='01:00';
@@ -117,11 +117,17 @@
         playArea.appendChild(el);
         target=el;
         const startTime=Date.now();
-        const hide=setTimeout(()=>{el.remove();},APPEAR_DURATION_MS);
+
+        const hide=setTimeout(()=>{
+          if(el && el.parentNode) el.remove();
+          target = null;
+        },APPEAR_DURATION_MS);
+
         el.addEventListener('click',()=>{
           hits.push(Date.now()-startTime);
           clearTimeout(hide);
           el.remove();
+          target = null;
         });
       }
 
@@ -137,17 +143,8 @@
         modal.style.display='block';
       }
 
-      controlBtn.onclick=()=>{
-        if(started){
-          clearAll();
-          started=false;
-          startTest();
-        } else {
-          startTest();
-        }
-      }
-
-      retryBtn.onclick=()=>{modal.style.display='none';}
+      controlBtn.onclick=()=>{startTest();}
+      startAgainBtn.onclick=()=>{modal.style.display='none';startTest();}
     })();
   </script>
 </body>
