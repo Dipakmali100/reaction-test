@@ -63,7 +63,7 @@
       const TEST_DURATION_SEC = 60; // 1 minute
       const APPEAR_MIN = 25;
       const APPEAR_MAX = 30;
-      const APPEAR_DURATION_MS = 1000; // always visible for 1s
+      const APPEAR_DURATION_MS = 1000; // visible for 1s
       const SIZE_VH_MIN = 5;
       const SIZE_VH_MAX = 7;
 
@@ -71,7 +71,6 @@
       let hits = [];
       let started = false;
       let total = 0;
-      let testEnd;
       let countdownInterval;
       let target;
 
@@ -104,7 +103,7 @@
         timerEl.textContent='01:00';
 
         // Random offsets spaced to ensure 1 sec visibility per target
-        const minGap = 1.2; // at least 1.2 seconds gap between spawns
+        const minGap = 1.2; 
         const offsets = [];
         let current = 0;
         for(let i=0;i<total;i++){
@@ -129,7 +128,7 @@
           }
         },1000);
 
-        testEnd=setTimeout(endTest,TEST_DURATION_SEC*1000);
+        setTimeout(endTest,TEST_DURATION_SEC*1000);
       }
 
       function showTarget(i){
@@ -146,12 +145,13 @@
         el.style.position='fixed';
         playArea.appendChild(el);
         target=el;
-        const startTime=Date.now();
 
+        const startTime=Date.now();
         let clicked = false;
+
         const hide=setTimeout(()=>{
           if(!clicked){
-            // Missed → fixed 1 second (1000ms)
+            // missed → count as exactly 1 second
             hits.push(APPEAR_DURATION_MS);
           }
           if(el && el.parentNode) el.remove();
@@ -172,18 +172,17 @@
         clearAll();
         if(target)target.remove();
 
-        // calculate average = sum of all times / total circles
-        let totalSum = hits.reduce((a,b)=>a+b,0);
-        let avgMs = totalSum / total;
+        // If some circles weren't recorded, fill them with 1s
+        while(hits.length < total) hits.push(APPEAR_DURATION_MS);
 
-        // ✅ Guarantee that if no circles clicked, result is exactly 1.000 sec
-        if(hits.length === 0 || avgMs > 1000) avgMs = 1000;
+        const totalSum = hits.reduce((a,b)=>a+b,0);
+        const avgMs = totalSum / total;
 
         resultText.innerText = `Average Reaction Time: ${(avgMs/1000).toFixed(3)} sec`;
         modal.style.display='block';
       }
 
-      controlBtn.onclick=()=>{startTest();}
+      controlBtn.onclick=()=>startTest();
       startAgainBtn.onclick=()=>{modal.style.display='none';startTest();}
     })();
   </script>
