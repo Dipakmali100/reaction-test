@@ -6,20 +6,35 @@
   <title>Reaction Test</title>
   <style>
     :root{--bg:#000;--fg:#fff}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:var(--fg);overflow:hidden}
+    html,body{
+      height:100%;margin:0;
+      font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;
+      background:var(--bg);color:var(--fg);overflow:hidden;
+    }
 
     .play-area{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
     .target{position:absolute;border-radius:50%;cursor:pointer;box-shadow:0 0 20px rgba(255,255,255,0.3);}
 
     #control-btn{
       position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-      background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:16px;
+      background:transparent;border:1px solid rgba(255,255,255,0.4);
+      color:#fff;padding:10px 20px;border-radius:8px;
+      cursor:pointer;font-size:16px;
     }
 
-    #timer{position:fixed;top:20px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:bold;}
+    #timer{
+      position:fixed;top:20px;left:50%;transform:translateX(-50%);
+      font-size:18px;font-weight:bold;
+    }
 
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999}
-    .modal{background:#111;border-radius:12px;padding:20px;min-width:260px;text-align:center}
+    .modal-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,0.8);
+      display:flex;align-items:center;justify-content:center;z-index:9999;
+    }
+    .modal{
+      background:#111;border-radius:12px;padding:20px;
+      min-width:260px;text-align:center;
+    }
 
     @media (max-width:600px){
       #control-btn{padding:8px 16px;font-size:14px;bottom:15px;}
@@ -48,9 +63,9 @@
       const TEST_DURATION_SEC = 60; // 1 minute
       const APPEAR_MIN = 25;
       const APPEAR_MAX = 30;
-      const APPEAR_DURATION_MS = 1000; // visible for 1 second
-      const SIZE_VH_MIN = 8;
-      const SIZE_VH_MAX = 10;
+      const APPEAR_DURATION_MS = 1000; // always visible for 1s
+      const SIZE_VH_MIN = 5;
+      const SIZE_VH_MAX = 7;
 
       let timers = [];
       let hits = [];
@@ -70,7 +85,12 @@
       function rand(min,max){return Math.random()*(max-min)+min}
       function randColor(){const h=Math.floor(Math.random()*360);return `hsl(${h} 80% 60%)`}
 
-      function clearAll(){timers.forEach(t=>clearTimeout(t));timers=[];if(target)target.remove();if(countdownInterval)clearInterval(countdownInterval);}
+      function clearAll(){
+        timers.forEach(t=>clearTimeout(t));
+        timers=[];
+        if(target)target.remove();
+        if(countdownInterval)clearInterval(countdownInterval);
+      }
 
       function startTest(){
         clearAll();
@@ -83,8 +103,15 @@
         let timeLeft = TEST_DURATION_SEC;
         timerEl.textContent='01:00';
 
-        const offsets = Array.from({length:total},()=>rand(0,TEST_DURATION_SEC-1));
-        offsets.sort((a,b)=>a-b);
+        // Random offsets spaced to ensure 1 sec visibility per target
+        const minGap = 1.2; // at least 1.2 seconds gap between spawns
+        const offsets = [];
+        let current = 0;
+        for(let i=0;i<total;i++){
+          current += rand(minGap, (TEST_DURATION_SEC/total) + minGap);
+          if(current < TEST_DURATION_SEC - 1)
+            offsets.push(current);
+        }
 
         offsets.forEach((offset,i)=>{
           const id=setTimeout(()=>showTarget(i),offset*1000);
@@ -96,7 +123,10 @@
           const mm = String(Math.floor(timeLeft/60)).padStart(2,'0');
           const ss = String(timeLeft%60).padStart(2,'0');
           timerEl.textContent = `${mm}:${ss}`;
-          if(timeLeft <= 0){ clearInterval(countdownInterval); endTest(); }
+          if(timeLeft <= 0){
+            clearInterval(countdownInterval);
+            endTest();
+          }
         },1000);
 
         testEnd=setTimeout(endTest,TEST_DURATION_SEC*1000);
@@ -118,12 +148,17 @@
         target=el;
         const startTime=Date.now();
 
+        let clicked = false;
         const hide=setTimeout(()=>{
+          if(!clicked){
+            hits.push(APPEAR_DURATION_MS); // missed → 1s (1000ms)
+          }
           if(el && el.parentNode) el.remove();
           target = null;
         },APPEAR_DURATION_MS);
 
         el.addEventListener('click',()=>{
+          clicked = true;
           hits.push(Date.now()-startTime);
           clearTimeout(hide);
           el.remove();
@@ -135,11 +170,12 @@
         started=false;
         clearAll();
         if(target)target.remove();
-        if(hits.length===0){resultText.innerText='No hits recorded.';}
-        else {
-          const avg=hits.reduce((a,b)=>a+b,0)/hits.length;
-          resultText.innerText=`Average Reaction Time: ${(avg/1000).toFixed(3)} sec`;
-        }
+
+        // calculate average = sum of all times / total circles
+        let totalSum = hits.reduce((a,b)=>a+b,0);
+        let avgMs = totalSum / total;
+
+        resultText.innerText = `Average Reaction Time: ${(avgMs/1000).toFixed(3)} sec`;
         modal.style.display='block';
       }
 
