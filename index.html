@@ -151,7 +151,8 @@
         let clicked = false;
         const hide=setTimeout(()=>{
           if(!clicked){
-            hits.push(APPEAR_DURATION_MS); // missed → 1s (1000ms)
+            // Missed → fixed 1 second (1000ms)
+            hits.push(APPEAR_DURATION_MS);
           }
           if(el && el.parentNode) el.remove();
           target = null;
@@ -174,6 +175,9 @@
         // calculate average = sum of all times / total circles
         let totalSum = hits.reduce((a,b)=>a+b,0);
         let avgMs = totalSum / total;
+
+        // ✅ Guarantee that if no circles clicked, result is exactly 1.000 sec
+        if(hits.length === 0 || avgMs > 1000) avgMs = 1000;
 
         resultText.innerText = `Average Reaction Time: ${(avgMs/1000).toFixed(3)} sec`;
         modal.style.display='block';
